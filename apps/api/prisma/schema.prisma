@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// Entities:
+// users
+// tokens
+// transactions (expenses, incomes)
+// categories
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String?
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  avatarUrl    String?  @map("avatar_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tokens      Token[]
+  Transaction Transaction[]
+  Budget      Budget[]
+  BudgetItem  BudgetItem[]
+
+  @@map("users")
+}
+
+enum TokenType {
+  PASSWORD_RECOVER
+}
+
+model Token {
+  id        String    @id @default(uuid())
+  type      TokenType
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  @@map("tokens")
+}
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  amount      Int
+  description String?
+  type        TransactionType
+  date        DateTime
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String   @map("category_id")
+
+  @@map("transactions")
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  BudgetItem BudgetItem[]
+
+  @@map("budgets")
+}
+
+model BudgetItem {
+  id        String   @id @default(uuid())
+  planned   Int
+  actual    Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String @map("user_id")
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String   @map("category_id")
+
+  budget   Budget @relation(fields: [budgetId], references: [id])
+  budgetId String @map("budget_id")
+
+  @@map("budget_items")
+}
+
+model Category {
+  id        String          @id @default(uuid())
+  title     String
+  type      TransactionType
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  transactions Transaction[]
+  BudgetItem   BudgetItem[]
+
+  @@map("categories")
+}
